@@ -27,21 +27,13 @@ def load_flan_t5():
         checkpoint = "google/flan-t5-large"
         st.info("Downloading google/flan-t5-large model + tokenizer... This will happen only once!")
         tokenizer = T5Tokenizer.from_pretrained(checkpoint)
-        model = T5ForConditionalGeneration.from_pretrained(
-            checkpoint,
-            device_map="auto",
-            torch_dtype=torch.float32
-        )
+        model = T5ForConditionalGeneration.from_pretrained(checkpoint)
         tokenizer.save_pretrained(LOCAL_FLAN_DIR)
         model.save_pretrained(LOCAL_FLAN_DIR)
         st.success(f"Model and tokenizer saved locally at {LOCAL_FLAN_DIR}")
     else:
         tokenizer = T5Tokenizer.from_pretrained(LOCAL_FLAN_DIR)
-        model = T5ForConditionalGeneration.from_pretrained(
-            LOCAL_FLAN_DIR,
-            device_map="auto",
-            torch_dtype=torch.float32
-        )
+        model = T5ForConditionalGeneration.from_pretrained(LOCAL_FLAN_DIR)
     return tokenizer, model
 
 @st.cache_resource(show_spinner=True)
@@ -50,21 +42,13 @@ def load_lamini_flan_t5():
         os.makedirs(LOCAL_LAMINI_FLAN_DIR, exist_ok=True)
         st.info("Downloading MBZUAI/LaMini-Flan-T5-248M model + tokenizer... This will happen only once!")
         tokenizer = T5Tokenizer.from_pretrained(LAMINI_FLAN_CHECKPOINT)
-        model = T5ForConditionalGeneration.from_pretrained(
-            LAMINI_FLAN_CHECKPOINT,
-            device_map="auto",
-            torch_dtype=torch.float32
-        )
+        model = T5ForConditionalGeneration.from_pretrained(LAMINI_FLAN_CHECKPOINT)
         tokenizer.save_pretrained(LOCAL_LAMINI_FLAN_DIR)
         model.save_pretrained(LOCAL_LAMINI_FLAN_DIR)
         st.success(f"Model and tokenizer saved locally at {LOCAL_LAMINI_FLAN_DIR}")
     else:
         tokenizer = T5Tokenizer.from_pretrained(LOCAL_LAMINI_FLAN_DIR)
-        model = T5ForConditionalGeneration.from_pretrained(
-            LOCAL_LAMINI_FLAN_DIR,
-            device_map="auto",
-            torch_dtype=torch.float32
-        )
+        model = T5ForConditionalGeneration.from_pretrained(LOCAL_LAMINI_FLAN_DIR)
     return tokenizer, model
 
 @st.cache_resource(show_spinner=True)
@@ -99,7 +83,7 @@ def get_length_params(length_choice, model_type='flan'):
     elif length_choice == "Medium":
         min_ratio, max_ratio = 0.2, 0.5
         min_cap, max_cap = 40, 100
-    else:  # Large
+    else:
         min_ratio, max_ratio = 0.4, 0.8
         min_cap, max_cap = 80, 200
     if model_type == 'bart':
@@ -111,7 +95,7 @@ def offline_summarize_with_model(filepath, length_choice, tokenizer, model):
     all_summaries = []
     min_ratio, max_ratio, min_cap, max_cap = get_length_params(length_choice, 'flan')
     for chunk in input_chunks:
-        input_len = len(tokenizer.encode(chunk, truncation=True))
+        input_len = len(tokenizer(chunk, truncation=True)['input_ids'])
         max_len = min(max_cap, int(input_len * max_ratio))
         min_len = max(min_cap, int(input_len * min_ratio))
         pipe_sum = pipeline(
@@ -132,7 +116,7 @@ def online_summarize(filepath, length_choice):
     all_summaries = []
     min_ratio, max_ratio, min_cap, max_cap = get_length_params(length_choice, 'bart')
     for chunk in input_chunks:
-        input_len = len(tokenizer.encode(chunk, truncation=True))
+        input_len = len(tokenizer(chunk, truncation=True)['input_ids'])
         max_len = min(max_cap, int(input_len * max_ratio), 512)
         min_len = max(min_cap, int(input_len * min_ratio))
         pipe_sum = pipeline(
