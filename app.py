@@ -1,6 +1,6 @@
 import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader
 from transformers import (
     T5Tokenizer, T5ForConditionalGeneration,
     AutoTokenizer, AutoModelForSeq2SeqLM,
@@ -75,7 +75,7 @@ def file_preprocessing(file_path):
     chunks = [text.page_content for text in texts]
     return chunks
 
-# ---- Summarization Pipelines ----
+# ---- Summarization ----
 def get_length_params(length_choice, model_type='flan'):
     if length_choice == "Small":
         min_ratio, max_ratio = 0.1, 0.2
@@ -107,8 +107,7 @@ def offline_summarize_with_model(filepath, length_choice, tokenizer, model):
         )
         result = pipe_sum(chunk, truncation=True)
         all_summaries.append(result[0]['summary_text'])
-    final_summary = "\n\n".join(all_summaries)
-    return final_summary
+    return "\n\n".join(all_summaries)
 
 def online_summarize(filepath, length_choice):
     tokenizer, model = load_bart()
@@ -128,8 +127,7 @@ def online_summarize(filepath, length_choice):
         )
         result = pipe_sum(chunk, truncation=True)
         all_summaries.append(result[0]['summary_text'])
-    final_summary = "\n\n".join(all_summaries)
-    return final_summary
+    return "\n\n".join(all_summaries)
 
 # ---- PDF Display ----
 @st.cache_data
@@ -148,17 +146,10 @@ mode_choice = st.radio(
 )
 
 offline_model = None
-online_model = None
 if mode_choice == "Offline":
     offline_model = st.selectbox(
         "Select offline model:",
         ("Flan-T5-Large", "LaMini-Flan-T5-248M"),
-        index=0
-    )
-elif mode_choice == "Online":
-    online_model = st.selectbox(
-        "Select online model:",
-        ("BART-Large-CNN",),
         index=0
     )
 
@@ -192,7 +183,7 @@ if uploaded_file is not None:
                     elif offline_model == "LaMini-Flan-T5-248M":
                         tokenizer, model = load_lamini_flan_t5()
                         summary = offline_summarize_with_model(filepath, summary_length, tokenizer, model)
-                elif mode_choice == "Online":
+                else:
                     summary = online_summarize(filepath, summary_length)
             st.success("✅ Summarization Complete")
             st.markdown(summary)
